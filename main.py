@@ -40,6 +40,12 @@ letters_deleted = 0
 
 input_box_active = False
 
+def text_input_callback(text):
+    print(text)
+
+def button_callback():
+    print("Button clicked!")
+
 while running:
     screen.fill((25, 25, 25))
     clock.tick(60)
@@ -78,7 +84,9 @@ while running:
                 if user_text == text_input.placeholder:
                     user_text = ""
                     text_input.add_text(user_text)
-            else:
+            if button.is_clicked():
+                button_callback()
+            elif not text_input.is_clicked() and input_box_active:
                 input_box_active = False
                 if user_text == "":
                     user_text = text_input.placeholder
@@ -95,6 +103,13 @@ while running:
                 if len(user_text) < 20:
                     user_text += event.unicode
                     start_length = len(user_text)
+            elif event.key == pygame.K_RETURN:
+                if user_text == "":
+                    user_text = text_input.placeholder
+                    text_input.add_text(user_text)
+                else:
+                    text_input_callback(user_text)
+                    user_text = text_input.placeholder
             text_input.add_text(user_text)
     
     button.draw()
