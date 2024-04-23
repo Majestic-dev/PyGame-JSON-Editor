@@ -37,15 +37,33 @@ class Button:
         self.text_surface = self.font.render(self.text, True, self.font_colour)
         self.text_rect = self.text_surface.get_rect(center=(self.surface.get_width()/2, self.surface.get_height()/2))
 
+        self.is_dragging = False
+
     def draw(self):
+        self.surface.fill(self.bg_colour)
+
         if self.rect.collidepoint(pygame.mouse.get_pos()):
             self.surface.fill(self.hover_colour)
         else:
             self.surface.fill(self.bg_colour)
-            pygame.draw.rect(self.surface, self.border_colour, (0, 0, self.width, self.height), self.border_width)
-
+        
+        pygame.draw.rect(self.surface, self.border_colour, (0, 0, self.width, self.height), self.border_width)
         self.surface.blit(self.text_surface, self.text_rect)
         self.screen.blit(self.surface, (self.x, self.y))
+
+    def move_on_hold(self):
+        self.surface.fill(self.hover_colour)
+
+        if self.rect.collidepoint(pygame.mouse.get_pos()) and pygame.mouse.get_pressed()[0]:
+            self.is_dragging = True
+
+        if self.is_dragging:
+            self.x = pygame.mouse.get_pos()[0] - self.width/2
+            self.y = pygame.mouse.get_pos()[1] - self.height/2
+            self.rect.topleft = (self.x, self.y)
+
+        if not pygame.mouse.get_pressed()[0]:
+            self.is_dragging = False
 
     def is_clicked(self):
         if self.rect.collidepoint(pygame.mouse.get_pos()):
