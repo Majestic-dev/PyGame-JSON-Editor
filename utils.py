@@ -109,15 +109,23 @@ class TextInput:
         self.text_surface = self.font.render(self.placeholder, True, self.font_colour)
         self.text_rect = self.text_surface.get_rect(center=(self.surface.get_width()/2, self.surface.get_height()/2))
 
+        self.activated = False
+
     def draw(self):
         self.surface.fill(self.bg_colour)
         pygame.draw.rect(self.surface, self.border_colour, (0, 0, self.width, self.height), self.border_width)
+
+        if not self.rect.collidepoint(pygame.mouse.get_pos()):
+            pygame.mouse.set_visible(True)
+        elif self.rect.collidepoint(pygame.mouse.get_pos()) and self.activated:
+            pygame.mouse.set_visible(False)
 
         self.surface.blit(self.text_surface, self.text_rect)
         self.screen.blit(self.surface, (self.x, self.y))
 
     def is_clicked(self):
         if self.rect.collidepoint(pygame.mouse.get_pos()):
+            self.activated = True
             return True
         return False
     
