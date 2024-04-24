@@ -6,7 +6,7 @@ This project is a JSON editor built with Pygame. It provides a graphical user in
 
 1. Clone the repository:
 ```sh
-git clone https://github.com/yourusername/PyGame-JSON-Editor.git
+git clone https://github.com/Majestic-dev/PyGame-JSON-Editor.git
 
 pip install -r requirements.txt
 ```
