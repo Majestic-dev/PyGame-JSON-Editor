@@ -67,7 +67,8 @@ class Keyboard:
 
         return user_text, self.input_box_active
     
-    def handle_keydown(self, event, keys, user_text: str, text_input, text_input_callback):
+    def handle_keydown(self, event, user_text: str, text_input, text_input_callback):
+        keys = pygame.key.get_pressed()
         if (keys[pygame.K_LCTRL] and keys[pygame.K_BACKSPACE]) or (keys[pygame.K_RCTRL] and keys[pygame.K_BACKSPACE]):
             words = user_text.split(" ")
             if len(words) > 1:
