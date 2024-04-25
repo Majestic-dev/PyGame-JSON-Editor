@@ -1,6 +1,7 @@
 import pygame
 import json
 import ast
+import os
 
 from typing import Optional, Tuple
 
@@ -16,6 +17,12 @@ def convert_str(s):
                 return ast.literal_eval(s)
             except (ValueError, SyntaxError):
                 return s
+            
+def line_generator(filename: str):
+    with open(filename, 'r') as file:
+        for line in file:
+            yield line.rstrip('\n')
+
 
 class Button:
     def __init__(self, 
@@ -231,26 +238,36 @@ class DisplayJSONBox:
 
         self.scroll_speed = 10
 
+        self.text_surfaces = []
+
     def draw(self):
         self.surface.fill(self.bg_colour)
-        self.scroll_bar_height = max(self.height * self.height / max(self.text_height, self.height), 20)
         pygame.draw.rect(self.surface, self.scroll_bar_colour, (self.width - self.scroll_bar_width, self.scroll_bar_y, self.scroll_bar_width, self.scroll_bar_height))
         pygame.draw.rect(self.surface, self.scroll_bar_colour, (self.scroll_bar_x, self.height - self.scroll_bar_width, self.scroll_bar_width, self.scroll_bar_width))
         
-        y = 10 - self.scroll_offset_y
-        for surface in self.text_surfaces:
-            self.surface.blit(surface, (10 - self.scroll_offset_x, y))
-            y += self.font.get_height()
+        for i, text_surface in enumerate(self.text_surfaces):
+            y = i * self.font.get_height() + 10  # Calculate the y position relative to the current line number and the scroll offset
+            self.surface.blit(text_surface, (10 - self.scroll_offset_x, y))
 
         self.screen.blit(self.surface, (self.x, self.y))
 
     def set_text(self, filename: str):
+        self.filename = filename
         with open(filename, 'r') as file:
-            self.text = file.readlines()
-        self.text_surfaces = [self.font.render(line.rstrip("\n"), True, self.font_colour) for line in self.text]
-        self.text_height = len(self.text_surfaces) * self.font.get_height()
-        self.text_width = max(surface.get_width() for surface in self.text_surfaces)
+            self.total_lines = sum(1 for _ in file)
+        self.text_height = self.total_lines * self.font.get_height()
         self.scroll_bar_height = max(self.height * self.height / max(self.text_height, self.height), 20)
+        self.file_size = os.path.getsize(filename)
+        pygame.display.set_caption(f"JSON Editor ({filename} - {self.file_size / (1024 * 1024):.2f} MB)")
+        self.load_visible_text()
+
+    def load_visible_text(self):
+        start_line = max(int(self.scroll_offset_y / self.font.get_height()), 0)
+        end_line = min(start_line + int(self.height / self.font.get_height()) + 1, self.total_lines)
+        with open(self.filename, 'r') as file:
+            self.text = [next(file).rstrip('\n') for _ in range(end_line)]
+        self.text = self.text[start_line:]
+        self.text_surfaces = [self.font.render(line, True, self.font_colour) for line in self.text]
 
     def handle_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
@@ -277,6 +294,7 @@ class DisplayJSONBox:
                     self.scroll_right()
                 else:
                     self.scroll_down()
+            self.draw()
         elif event.type == pygame.MOUSEBUTTONUP:
             if event.button == 1:
                 self.vertical_scroll_bar_dragging = False
@@ -292,7 +310,8 @@ class DisplayJSONBox:
                 mouse_x -= self.x
                 self.scroll_bar_x = min(max(mouse_x - self.scroll_bar_drag_start_x, 0), self.width - self.scroll_bar_width)
                 self.scroll_offset_x = self.scroll_bar_x * (self.text_width - self.width) / (self.width - self.scroll_bar_width)  # Corrected this line
-    
+            self.draw()
+
     def scroll_left(self):
         self.scroll_bar_x = max(self.scroll_bar_x - self.scroll_speed, 0)
         self.scroll_offset_x = self.scroll_bar_x * (self.text_width - self.width) / (self.width - self.scroll_bar_width)
