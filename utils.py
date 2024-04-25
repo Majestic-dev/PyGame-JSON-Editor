@@ -1,7 +1,21 @@
 import pygame
+import json
+import ast
 
 from typing import Optional, Tuple
 
+
+def convert_str(s):
+    try:
+        return int(s)
+    except ValueError:
+        try:
+            return float(s)
+        except ValueError:
+            try:
+                return ast.literal_eval(s)
+            except (ValueError, SyntaxError):
+                return s
 
 class Button:
     def __init__(self, 
@@ -147,6 +161,150 @@ class TextInput:
                 self.font = pygame.font.Font(None, current_font_size)
                 self.text_surface = self.font.render(text, True, self.font_colour)
                 self.text_rect = self.text_surface.get_rect(center=(self.surface.get_width()/2, self.surface.get_height()/2))
+    
+    def add_json(self, filename: str, keys: list, value):
+        value = convert_str(value)
+        with open(filename, 'r') as file:
+            data = json.load(file)
+
+        # Navigate through the JSON object to find the correct place to insert the value
+        temp = data
+        for key in keys[:-1]:
+            temp = temp[key]
+        temp[keys[-1]] = value
+
+        with open(filename, 'w') as file:
+            json.dump(data, file, indent=4)
 
     def get_text(self):
         return self.text_surface
+    
+class DisplayJSONBox:
+    def __init__(self,
+                 x: int,
+                 y: int,
+                 width: int,
+                 height: int,
+                 font: pygame.font.Font,
+                 screen: pygame.display.set_mode,
+                 text: Optional[str] = "",
+                 font_colour: Tuple[int, int, int] = (0, 0, 0),
+                 bg_colour: Tuple[int, int, int] = (255, 255, 255),
+                 border_colour: Tuple[int, int, int] = (0, 0, 0),
+                 border_width: int = 2
+                 ):
+        
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.font = font
+        self.text = text
+        self.font_colour = font_colour
+        self.bg_colour = bg_colour
+        self.border_colour = border_colour
+        self.border_width = border_width
+        self.screen = screen
+
+        self.surface = pygame.Surface((self.width, self.height))
+        self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
+        self.text_surface = self.font.render(self.text, True, self.font_colour)
+        self.text_rect = self.text_surface.get_rect(topleft=(10, 10))
+
+        self.scroll_bar_width = 10
+        self.scroll_bar_height = 0
+        self.scroll_bar_colour = (128, 128, 128)
+
+        self.vertical_scroll_bar_dragging = False
+        self.horizontal_scroll_bar_dragging = False
+        
+        self.text_width = 0
+        
+        self.scroll_bar_x = 0
+        self.scroll_bar_y = 0
+
+        self.scroll_bar_drag_start_x = 0
+        self.scroll_offset_x = 0
+
+        self.scroll_bar_drag_start_y = 0
+        self.scroll_offset_y = 0
+
+        self.scroll_speed = 10
+
+    def draw(self):
+        self.surface.fill(self.bg_colour)
+        self.scroll_bar_height = max(self.height * self.height / max(self.text_height, self.height), 20)
+        pygame.draw.rect(self.surface, self.scroll_bar_colour, (self.width - self.scroll_bar_width, self.scroll_bar_y, self.scroll_bar_width, self.scroll_bar_height))
+        pygame.draw.rect(self.surface, self.scroll_bar_colour, (self.scroll_bar_x, self.height - self.scroll_bar_width, self.scroll_bar_width, self.scroll_bar_width))
+        
+        y = 10 - self.scroll_offset_y
+        for surface in self.text_surfaces:
+            self.surface.blit(surface, (10 - self.scroll_offset_x, y))
+            y += self.font.get_height()
+
+        self.screen.blit(self.surface, (self.x, self.y))
+
+    def set_text(self, filename: str):
+        with open(filename, 'r') as file:
+            self.text = file.readlines()
+        self.text_surfaces = [self.font.render(line.rstrip("\n"), True, self.font_colour) for line in self.text]
+        self.text_height = len(self.text_surfaces) * self.font.get_height()
+        self.text_width = max(surface.get_width() for surface in self.text_surfaces)
+        self.scroll_bar_height = max(self.height * self.height / max(self.text_height, self.height), 20)
+
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:
+                mouse_x, mouse_y = pygame.mouse.get_pos()
+                mouse_x -= self.x
+                mouse_y -= self.y
+                if self.width - self.scroll_bar_width <= mouse_x <= self.width and 0 <= mouse_y <= self.height:
+                    self.vertical_scroll_bar_dragging = True
+                    self.scroll_bar_drag_start_y = mouse_y - self.scroll_bar_y
+                elif 0 <= mouse_x <= self.width and self.height - self.scroll_bar_height <= mouse_y <= self.height:
+                    self.horizontal_scroll_bar_dragging = True
+                    self.scroll_bar_drag_start_x = mouse_x - self.scroll_bar_x
+            mouse_x, mouse_y = pygame.mouse.get_pos()
+            mouse_x -= self.x
+            mouse_y -= self.y
+            if event.button == 4:
+                if self.height - self.scroll_bar_height - self.scroll_bar_width <= mouse_y <= self.height:
+                    self.scroll_left()
+                else:
+                    self.scroll_up()
+            elif event.button == 5:
+                if self.height - self.scroll_bar_height - self.scroll_bar_width <= mouse_y <= self.height:
+                    self.scroll_right()
+                else:
+                    self.scroll_down()
+        elif event.type == pygame.MOUSEBUTTONUP:
+            if event.button == 1:
+                self.vertical_scroll_bar_dragging = False
+                self.horizontal_scroll_bar_dragging = False
+        elif event.type == pygame.MOUSEMOTION:
+            if self.vertical_scroll_bar_dragging:
+                _, mouse_y = pygame.mouse.get_pos()
+                mouse_y -= self.y
+                self.scroll_bar_y = min(max(mouse_y - self.scroll_bar_drag_start_y, 0), self.height - self.scroll_bar_height)
+                self.scroll_offset_y = self.scroll_bar_y * (self.text_height - self.height) / (self.height - self.scroll_bar_height)
+            elif self.horizontal_scroll_bar_dragging:
+                mouse_x, _ = pygame.mouse.get_pos()
+                mouse_x -= self.x
+                self.scroll_bar_x = min(max(mouse_x - self.scroll_bar_drag_start_x, 0), self.width - self.scroll_bar_width)
+                self.scroll_offset_x = self.scroll_bar_x * (self.text_width - self.width) / (self.width - self.scroll_bar_width)  # Corrected this line
+    
+    def scroll_left(self):
+        self.scroll_bar_x = max(self.scroll_bar_x - self.scroll_speed, 0)
+        self.scroll_offset_x = self.scroll_bar_x * (self.text_width - self.width) / (self.width - self.scroll_bar_width)
+
+    def scroll_right(self):
+        self.scroll_bar_x = min(self.scroll_bar_x + self.scroll_speed, self.width - self.scroll_bar_width)
+        self.scroll_offset_x = self.scroll_bar_x * (self.text_width - self.width) / (self.width - self.scroll_bar_width)
+
+    def scroll_up(self):
+        self.scroll_bar_y = max(self.scroll_bar_y - self.scroll_speed, 0)
+        self.scroll_offset_y = self.scroll_bar_y * (self.text_height - self.height) / (self.height - self.scroll_bar_height)
+
+    def scroll_down(self):
+        self.scroll_bar_y = min(self.scroll_bar_y + self.scroll_speed, self.height - self.scroll_bar_height)
+        self.scroll_offset_y = self.scroll_bar_y * (self.text_height - self.height) / (self.height - self.scroll_bar_height)
