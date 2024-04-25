@@ -69,7 +69,7 @@ class Keyboard:
     
     def handle_keydown(self, event, user_text: str, text_input, text_input_callback):
         keys = pygame.key.get_pressed()
-        if (keys[pygame.K_LCTRL] and keys[pygame.K_BACKSPACE]) or (keys[pygame.K_RCTRL] and keys[pygame.K_BACKSPACE]):
+        if (keys[pygame.K_LCTRL] and keys[pygame.K_BACKSPACE] and text_input.activated) or (keys[pygame.K_RCTRL] and keys[pygame.K_BACKSPACE] and text_input.activated):
             words = user_text.split(" ")
             if len(words) > 1:
                 words = words[:-1]
@@ -79,19 +79,33 @@ class Keyboard:
             text_input.add_text(user_text)
 
         elif event.key == pygame.K_BACKSPACE:
-            user_text = user_text[:-1]
+            if user_text != text_input.placeholder:
+                user_text = user_text[:-1]
+                text_input.add_json(
+                    filename="test.json",
+                    keys=["test", "test1"],
+                    value=user_text
+                )
 
         elif event.key != pygame.K_RETURN:
-            if len(user_text) < text_input.max_length:
+            if len(user_text) < text_input.max_length and self.text_input.activated:
                 user_text += event.unicode
                 self.start_length = len(user_text)
 
+                if user_text != text_input.placeholder:
+                    print(type(user_text))
+                    text_input.add_json(
+                        filename="test.json",
+                        keys=["test", "test1"],
+                        value=user_text
+                    )
+
         elif event.key == pygame.K_RETURN:
+            text_input.activated = False
             if user_text == "":
-                text_input.activated = False
                 user_text = text_input.placeholder
                 text_input.add_text(user_text)
-            else:
+            elif user_text != text_input.placeholder:
                 text_input_callback(user_text)
                 user_text = text_input.placeholder
 
