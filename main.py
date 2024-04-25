@@ -1,6 +1,6 @@
 import pygame
 
-from utils import Button, TextInput
+from utils import Button, TextInput, DisplayJSONBox
 
 from keyboard import Keyboard
 
@@ -30,6 +30,16 @@ text_input = TextInput(
             max_length=50,
             screen=screen,
             placeholder="Enter text here"
+)
+
+text_box = DisplayJSONBox(
+            x=780,
+            y=0,
+            width=500,
+            height=screen.get_height(),
+            font=pygame.font.Font(None, 24),
+            screen=screen,
+            bg_colour=(105, 105, 105)
 )
 
 keyboard = Keyboard(
@@ -65,9 +75,14 @@ while running:
 
         if event.type == pygame.KEYDOWN and input_box_active:
             user_text = keyboard.handle_keydown(event, user_text, text_input, text_input_callback)
+        
+        text_box.handle_event(event)
+
+    text_box.set_text("test.json")
     
     button.draw()
     text_input.draw()
+    text_box.draw()
 
     pygame.display.update()
     pygame.display.flip()
