@@ -174,7 +174,6 @@ class TextInput:
         with open(filename, 'r') as file:
             data = json.load(file)
 
-        # Navigate through the JSON object to find the correct place to insert the value
         temp = data
         for key in keys[:-1]:
             temp = temp[key]
@@ -246,7 +245,7 @@ class DisplayJSONBox:
         pygame.draw.rect(self.surface, self.scroll_bar_colour, (self.scroll_bar_x, self.height - self.scroll_bar_width, self.scroll_bar_width, self.scroll_bar_width))
         
         for i, text_surface in enumerate(self.text_surfaces):
-            y = i * self.font.get_height() + 10  # Calculate the y position relative to the current line number and the scroll offset
+            y = i * self.font.get_height() + 10
             self.surface.blit(text_surface, (10 - self.scroll_offset_x, y))
 
         self.screen.blit(self.surface, (self.x, self.y))
@@ -309,7 +308,7 @@ class DisplayJSONBox:
                 mouse_x, _ = pygame.mouse.get_pos()
                 mouse_x -= self.x
                 self.scroll_bar_x = min(max(mouse_x - self.scroll_bar_drag_start_x, 0), self.width - self.scroll_bar_width)
-                self.scroll_offset_x = self.scroll_bar_x * (self.text_width - self.width) / (self.width - self.scroll_bar_width)  # Corrected this line
+                self.scroll_offset_x = self.scroll_bar_x * (self.text_width - self.width) / (self.width - self.scroll_bar_width)
             self.draw()
 
     def scroll_left(self):
