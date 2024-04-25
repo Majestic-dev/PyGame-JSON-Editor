@@ -93,7 +93,6 @@ class Keyboard:
                 self.start_length = len(user_text)
 
                 if user_text != text_input.placeholder:
-                    print(type(user_text))
                     text_input.add_json(
                         filename="test.json",
                         keys=["test", "test1"],
