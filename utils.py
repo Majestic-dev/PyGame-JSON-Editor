@@ -4,6 +4,7 @@ import ast
 import os
 
 from typing import Optional, Tuple
+from collections import deque
 
 
 def convert_str(s):
@@ -272,12 +273,8 @@ class DisplayJSONBox:
     def set_text(self, filename: str):
         self.filename = filename
         with open(filename, 'r') as file:
-            lines = (line.rstrip('\n') for line in file)
-            self.total_lines = 0
-            self.text_width = 0
-            for line in lines:
-                self.total_lines += 1
-                self.text_width = max(self.text_width, self.font.size(line)[0])
+            self.lines = [line.rstrip('\n') for line in file]
+        self.total_lines = len(self.lines)
         self.text_height = self.total_lines * self.font.get_height()
         self.scroll_bar_height = max(self.height * self.height / max(self.text_height, self.height), 20)
         self.file_size = os.path.getsize(filename)
@@ -287,10 +284,9 @@ class DisplayJSONBox:
     def load_visible_text(self):
         start_line = max(int(self.scroll_offset_y / self.font.get_height()), 0)
         end_line = min(start_line + int(self.height / self.font.get_height()) + 1, self.total_lines)
-        with open(self.filename, 'r') as file:
-            self.text = [next(file).rstrip('\n') for _ in range(end_line)]
-        self.text = self.text[start_line:]
+        self.text = self.lines[start_line:end_line]
         self.text_surfaces = [self.font.render(line, True, self.font_colour) for line in self.text]
+        self.text_width = max(self.font.size(line)[0] for line in self.text)
 
     def handle_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
