@@ -250,10 +250,18 @@ class DisplayJSONBox:
         if self.text_height > self.height:
             pygame.draw.rect(self.surface, self.scroll_bar_colour, (self.width - self.scroll_bar_width, self.scroll_bar_y, self.scroll_bar_width, self.scroll_bar_height))
             self.vertical_scroll_bar_enabled = True
+        else:
+            self.vertical_scroll_bar_enabled = False
+            self.scroll_offset_y = 0
+            self.scroll_bar_y = 0
 
         if self.text_width > self.width:
             pygame.draw.rect(self.surface, self.scroll_bar_colour, (self.scroll_bar_x, self.height - self.scroll_bar_width, self.scroll_bar_width, self.scroll_bar_width))
             self.horizontal_scroll_bar_enabled = True
+        else:
+            self.horizontal_scroll_bar_enabled = False
+            self.scroll_offset_x = 0
+            self.scroll_bar_x = 0
 
         for i, text_surface in enumerate(self.text_surfaces):
             y = i * self.font.get_height() + 10
