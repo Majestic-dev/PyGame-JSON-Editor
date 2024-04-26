@@ -253,7 +253,12 @@ class DisplayJSONBox:
     def set_text(self, filename: str):
         self.filename = filename
         with open(filename, 'r') as file:
-            self.total_lines = sum(1 for _ in file)
+            lines = (line.rstrip('\n') for line in file)
+            self.total_lines = 0
+            self.text_width = 0
+            for line in lines:
+                self.total_lines += 1
+                self.text_width = max(self.text_width, self.font.size(line)[0])
         self.text_height = self.total_lines * self.font.get_height()
         self.scroll_bar_height = max(self.height * self.height / max(self.text_height, self.height), 20)
         self.file_size = os.path.getsize(filename)
