@@ -222,9 +222,13 @@ class DisplayJSONBox:
         self.scroll_bar_colour = (128, 128, 128)
 
         self.vertical_scroll_bar_dragging = False
+        self.vertical_scroll_bar_enabled = False
+
         self.horizontal_scroll_bar_dragging = False
+        self.horizontal_scroll_bar_enabled = False
         
         self.text_width = 0
+        self.text_height = 0
         
         self.scroll_bar_x = 0
         self.scroll_bar_y = 0
@@ -239,11 +243,18 @@ class DisplayJSONBox:
 
         self.text_surfaces = []
 
+
     def draw(self):
         self.surface.fill(self.bg_colour)
-        pygame.draw.rect(self.surface, self.scroll_bar_colour, (self.width - self.scroll_bar_width, self.scroll_bar_y, self.scroll_bar_width, self.scroll_bar_height))
-        pygame.draw.rect(self.surface, self.scroll_bar_colour, (self.scroll_bar_x, self.height - self.scroll_bar_width, self.scroll_bar_width, self.scroll_bar_width))
-        
+
+        if self.text_height > self.height:
+            pygame.draw.rect(self.surface, self.scroll_bar_colour, (self.width - self.scroll_bar_width, self.scroll_bar_y, self.scroll_bar_width, self.scroll_bar_height))
+            self.vertical_scroll_bar_enabled = True
+
+        if self.text_width > self.width:
+            pygame.draw.rect(self.surface, self.scroll_bar_colour, (self.scroll_bar_x, self.height - self.scroll_bar_width, self.scroll_bar_width, self.scroll_bar_width))
+            self.horizontal_scroll_bar_enabled = True
+
         for i, text_surface in enumerate(self.text_surfaces):
             y = i * self.font.get_height() + 10
             self.surface.blit(text_surface, (10 - self.scroll_offset_x, y))
@@ -289,15 +300,19 @@ class DisplayJSONBox:
             mouse_x -= self.x
             mouse_y -= self.y
             if event.button == 4:
-                if self.height - self.scroll_bar_height - self.scroll_bar_width <= mouse_y <= self.height:
-                    self.scroll_left()
-                else:
-                    self.scroll_up()
+                if self.rect.collidepoint(pygame.mouse.get_pos()):
+                    if (self.height - self.scroll_bar_height - self.scroll_bar_width <= mouse_y <= self.height) and self.horizontal_scroll_bar_enabled:
+                        self.scroll_left()
+                    else:
+                        if self.vertical_scroll_bar_enabled:
+                            self.scroll_up()
             elif event.button == 5:
-                if self.height - self.scroll_bar_height - self.scroll_bar_width <= mouse_y <= self.height:
-                    self.scroll_right()
-                else:
-                    self.scroll_down()
+                if self.rect.collidepoint(pygame.mouse.get_pos()):
+                    if (self.height - self.scroll_bar_height - self.scroll_bar_width <= mouse_y <= self.height) and self.horizontal_scroll_bar_enabled:
+                        self.scroll_right()
+                    else:
+                        if self.vertical_scroll_bar_enabled:
+                            self.scroll_down()
             self.draw()
         elif event.type == pygame.MOUSEBUTTONUP:
             if event.button == 1:
