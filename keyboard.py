@@ -92,19 +92,17 @@ class Keyboard:
                 user_text += event.unicode
                 self.start_length = len(user_text)
 
-                if user_text != text_input.placeholder:
-                    text_input.add_json(
-                        filename="test.json",
-                        keys=["test", "test1"],
-                        value=user_text
-                    )
-
         elif event.key == pygame.K_RETURN:
             text_input.activated = False
             if user_text == "":
                 user_text = text_input.placeholder
                 text_input.add_text(user_text)
             elif user_text != text_input.placeholder:
+                text_input.add_json(
+                        filename="test.json",
+                        keys=["test", "test1"],
+                        value=user_text
+                    )
                 text_input_callback(user_text)
                 user_text = text_input.placeholder
 
