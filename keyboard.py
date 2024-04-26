@@ -81,11 +81,6 @@ class Keyboard:
         elif event.key == pygame.K_BACKSPACE:
             if user_text != text_input.placeholder:
                 user_text = user_text[:-1]
-                text_input.add_json(
-                    filename="test.json",
-                    keys=["test", "test1"],
-                    value=user_text
-                )
 
         elif event.key != pygame.K_RETURN:
             if len(user_text) < text_input.max_length and self.text_input.activated:
