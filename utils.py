@@ -319,12 +319,12 @@ class DisplayJSONBox:
                 self.vertical_scroll_bar_dragging = False
                 self.horizontal_scroll_bar_dragging = False
         elif event.type == pygame.MOUSEMOTION:
-            if self.vertical_scroll_bar_dragging:
+            if self.vertical_scroll_bar_dragging and self.vertical_scroll_bar_enabled:
                 _, mouse_y = pygame.mouse.get_pos()
                 mouse_y -= self.y
                 self.scroll_bar_y = min(max(mouse_y - self.scroll_bar_drag_start_y, 0), self.height - self.scroll_bar_height)
                 self.scroll_offset_y = self.scroll_bar_y * (self.text_height - self.height) / (self.height - self.scroll_bar_height)
-            elif self.horizontal_scroll_bar_dragging:
+            elif self.horizontal_scroll_bar_dragging and self.horizontal_scroll_bar_enabled:
                 mouse_x, _ = pygame.mouse.get_pos()
                 mouse_x -= self.x
                 self.scroll_bar_x = min(max(mouse_x - self.scroll_bar_drag_start_x, 0), self.width - self.scroll_bar_width)
