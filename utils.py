@@ -37,7 +37,9 @@ class Button:
                  bg_colour: Tuple[int, int, int] = (255, 255, 255),
                  hover_colour: Tuple[int, int, int] = (128, 128, 128),
                  border_colour: Tuple[int, int, int] = (0, 0, 0),
-                 border_width: int = 2
+                 border_width: int = 2,
+                 screen_x: int = 0,
+                 screen_y: int = 0
                  ):
         
         self.x = x
@@ -52,9 +54,15 @@ class Button:
         self.border_colour = border_colour
         self.border_width = border_width
         self.screen = screen
+        self.screen_x = screen_x
+        self.screen_y = screen_y
 
         self.surface = pygame.Surface((self.width, self.height))
-        self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
+
+        if self.screen_x == 0 and self.screen_y == 0:
+            self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
+        else:
+            self.rect = pygame.Rect(self.screen_x, self.screen_y, self.width, self.height)
         self.text_surface = self.font.render(self.text, True, self.font_colour)
         self.text_rect = self.text_surface.get_rect(center=(self.surface.get_width()/2, self.surface.get_height()/2))
 
@@ -244,6 +252,8 @@ class DisplayJSONBox:
 
         self.text_surfaces = []
 
+        self.dict: dict = {}
+
 
     def draw(self):
         self.surface.fill(self.bg_colour)
@@ -274,7 +284,11 @@ class DisplayJSONBox:
         if force_reload or not self.filename or not self.lines:
             self.filename = filename
             with open(filename, 'r') as file:
-                self.lines = [line.rstrip('\n') for line in file]
+                lines = []
+                for line in file:
+                    lines.append(line.rstrip('\n'))
+                self.lines = lines
+                self.dict = json.loads(''.join(lines))
         self.total_lines = len(self.lines)
         self.text_height = self.total_lines * self.font.get_height()
         self.scroll_bar_height = max(self.height * self.height / max(self.text_height, self.height), 20)
@@ -351,3 +365,141 @@ class DisplayJSONBox:
     def scroll_down(self):
         self.scroll_bar_y = min(self.scroll_bar_y + self.scroll_speed, self.height - self.scroll_bar_height)
         self.scroll_offset_y = self.scroll_bar_y * (self.text_height - self.height) / (self.height - self.scroll_bar_height)
+
+class DisplayJSONKeyButtonsDynamically:
+    def __init__(self,
+                 x: int,
+                 y: int,
+                 width: int,
+                 height: int,
+                 font: pygame.font.Font,
+                 screen: pygame.display.set_mode,
+                 button_width: int,
+                 button_height: int,
+                 display_json_box: DisplayJSONBox
+                 ):
+        
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.font = font
+        self.screen = screen
+        self.button_width = button_width
+        self.button_height = button_height
+        self.display_json_box = display_json_box
+
+        self.surface = pygame.Surface((self.width, self.height))
+        self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
+
+        self.buttons = []
+        self.keys = []
+        self.total_keys = 0
+
+        self.scroll_bar_width = 10
+        self.scroll_bar_height = 0
+        self.scroll_bar_colour = (100, 100, 100)
+        self.vertical_scroll_bar_dragging = False
+        self.vertical_scroll_bar_enabled = True
+        self.scroll_bar_y = 0
+        self.scroll_bar_drag_start_y = 0
+        self.scroll_offset_y = 0
+        self.scroll_speed = 10
+
+        self.total_button_height = 0
+
+    def set_keys(self, force_reload: bool = False):
+        keys = list(self.display_json_box.dict.keys())
+        if force_reload or not self.keys:
+            self.keys = keys
+        self.total_keys = len(self.keys)
+        self.total_button_height = ((self.total_keys + 4) // 5) * self.button_height
+        total_lines = (self.total_keys + 4) // 5
+        visible_lines = self.height // self.button_height
+        self.scroll_bar_height = max((visible_lines / total_lines) * self.height, 20)
+        self.load_visible_buttons()
+        
+    def load_visible_buttons(self):
+        start_row = max(int(self.scroll_offset_y / self.button_height), 0)
+        end_row = min(start_row + int(self.height / self.button_height) + 2, int(self.total_keys / 5) + 1)
+        start_key = start_row * 5
+        end_key = min(end_row * 5, self.total_keys)
+        self.visible_keys = self.keys[start_key:end_key]
+        self.buttons = [Button(
+            x=(i % 5) * self.button_width,
+            y=((i // 5) - start_row) * self.button_height,
+            width=self.button_width,
+            height=self.button_height,
+            font=self.font,
+            screen=self.surface,
+            text=key,
+            bg_colour=(169, 169, 169),
+            border_width=2,
+            screen_x=(i % 5) * self.button_width + self.x,
+            screen_y=((i // 5) - start_row) * self.button_height + self.y
+        ) for i, key in enumerate(self.visible_keys, start=start_key)]
+
+
+    def draw(self):
+        self.surface.fill((25, 25, 25))
+
+        total_lines = (len(self.keys) + 4) // 5
+        visible_lines = self.height // self.button_height
+
+        self.load_visible_buttons()
+
+        for button in self.buttons:
+            button.draw()
+
+        if total_lines > visible_lines:
+            self.scroll_bar_height = max((visible_lines / total_lines) * self.height, 20)
+            pygame.draw.rect(self.surface, self.scroll_bar_colour, (self.width - self.scroll_bar_width, self.scroll_bar_y, self.scroll_bar_width, self.scroll_bar_height))
+            self.vertical_scroll_bar_enabled = True
+        else:
+            self.vertical_scroll_bar_enabled = False
+            self.scroll_offset_y = 0
+            self.scroll_bar_y = 0
+
+        self.screen.blit(self.surface, (self.x, self.y))
+
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:
+                mouse_x, mouse_y = pygame.mouse.get_pos()
+                mouse_x -= self.x
+                mouse_y -= self.y
+                if self.width - self.scroll_bar_width <= mouse_x <= self.width and 0 <= mouse_y <= self.height:
+                    self.vertical_scroll_bar_dragging = True
+                    self.scroll_bar_drag_start_y = mouse_y - self.scroll_bar_y
+            elif event.button == 4:
+                if self.rect.collidepoint(pygame.mouse.get_pos()):
+                    if self.vertical_scroll_bar_enabled:
+                        self.scroll_up()
+            elif event.button == 5:
+                if self.rect.collidepoint(pygame.mouse.get_pos()):
+                    if self.vertical_scroll_bar_enabled:
+                        self.scroll_down()
+            self.draw()
+        elif event.type == pygame.MOUSEBUTTONUP:
+            if event.button == 1:
+                self.vertical_scroll_bar_dragging = False
+        elif event.type == pygame.MOUSEMOTION:
+            if self.vertical_scroll_bar_dragging and self.vertical_scroll_bar_enabled:
+                _, mouse_y = pygame.mouse.get_pos()
+                mouse_y -= self.y
+                self.scroll_bar_y = min(max(mouse_y - self.scroll_bar_drag_start_y, 0), self.height - self.scroll_bar_height)
+                self.scroll_offset_y = (self.scroll_bar_y / (self.height - self.scroll_bar_height)) * max(self.total_button_height - self.height, 0)
+                self.scroll_offset_y = min(self.scroll_offset_y, max(self.total_button_height - self.height, 0))
+            self.draw()
+
+    def scroll_down(self):
+        max_scroll = max(self.total_button_height - self.height, 0)
+        self.scroll_bar_y = min(self.scroll_bar_y + self.scroll_speed, self.height - self.scroll_bar_height)
+        self.scroll_offset_y = (self.scroll_bar_y / (self.height - self.scroll_bar_height)) * max_scroll
+        self.scroll_offset_y = min(self.scroll_offset_y, max_scroll)
+
+    def scroll_up(self):
+        max_scroll = max(self.total_button_height - self.height, 0)
+        self.scroll_bar_y = max(self.scroll_bar_y - self.scroll_speed, 0)
+        self.scroll_offset_y = (self.scroll_bar_y / (self.height - self.scroll_bar_height)) * max_scroll
+        self.scroll_offset_y = max(self.scroll_offset_y, 0)
