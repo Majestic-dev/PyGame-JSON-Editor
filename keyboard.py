@@ -67,7 +67,7 @@ class Keyboard:
 
         return user_text, self.input_box_active
     
-    def handle_keydown(self, event, user_text: str, text_input, text_input_callback):
+    def handle_keydown(self, event, user_text: str, text_input, text_input_callback, text_box):
         keys = pygame.key.get_pressed()
         if (keys[pygame.K_LCTRL] and keys[pygame.K_BACKSPACE] and text_input.activated) or (keys[pygame.K_RCTRL] and keys[pygame.K_BACKSPACE] and text_input.activated):
             words = user_text.split(" ")
@@ -95,9 +95,10 @@ class Keyboard:
             elif user_text != text_input.placeholder:
                 text_input.add_json(
                         filename="test.json",
-                        keys=["test", "test1"],
+                        keys=["key_0"],
                         value=user_text
                     )
+                text_box.set_text("test.json", True)
                 text_input_callback(user_text)
                 user_text = text_input.placeholder
 
