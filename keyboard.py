@@ -46,7 +46,7 @@ class Keyboard:
 
         return user_text
     
-    def handle_mousedown(self, user_text: str, text_input, button, button_callback):
+    def handle_mousedown(self, user_text: str, text_input):
         if self.text_input.is_clicked():
             pygame.mouse.set_visible(False)
             self.input_box_active = True
@@ -54,9 +54,6 @@ class Keyboard:
             if user_text == self.text_input.placeholder:
                 user_text = ""
                 text_input.add_text(user_text)
-
-        if button.is_clicked():
-            button_callback()
 
         elif not self.text_input.is_clicked() and self.input_box_active:
             self.input_box_active = False
