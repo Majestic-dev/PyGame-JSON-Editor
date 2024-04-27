@@ -74,15 +74,15 @@ while running:
             user_text, input_box_active = keyboard.handle_mousedown(user_text, text_input, button, button_callback)
 
         if event.type == pygame.KEYDOWN and input_box_active:
-            user_text = keyboard.handle_keydown(event, user_text, text_input, text_input_callback)
+            user_text = keyboard.handle_keydown(event, user_text, text_input, text_input_callback, text_box)
         
         text_box.handle_event(event)
-
-    text_box.set_text("test.json")
     
     button.draw()
     text_input.draw()
     text_box.draw()
+
+    text_box.set_text("test.json")
 
     pygame.display.update()
     pygame.display.flip()
