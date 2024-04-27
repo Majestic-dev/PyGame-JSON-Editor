@@ -4,7 +4,6 @@ import ast
 import os
 
 from typing import Optional, Tuple
-from collections import deque
 
 
 def convert_str(s):
@@ -217,6 +216,7 @@ class DisplayJSONBox:
         self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
         self.text_surface = self.font.render(self.text, True, self.font_colour)
         self.text_rect = self.text_surface.get_rect(topleft=(10, 10))
+        self.filename = None
 
         self.scroll_bar_width = 10
         self.scroll_bar_height = 0
@@ -270,10 +270,11 @@ class DisplayJSONBox:
 
         self.screen.blit(self.surface, (self.x, self.y))
 
-    def set_text(self, filename: str):
-        self.filename = filename
-        with open(filename, 'r') as file:
-            self.lines = [line.rstrip('\n') for line in file]
+    def set_text(self, filename: str, force_reload: bool = False):
+        if force_reload or not self.filename or not self.lines:
+            self.filename = filename
+            with open(filename, 'r') as file:
+                self.lines = [line.rstrip('\n') for line in file]
         self.total_lines = len(self.lines)
         self.text_height = self.total_lines * self.font.get_height()
         self.scroll_bar_height = max(self.height * self.height / max(self.text_height, self.height), 20)
