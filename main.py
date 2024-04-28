@@ -10,6 +10,7 @@ clock = pygame.time.Clock()
 
 screen = pygame.display.set_mode((1280, 720))
 pygame.display.set_caption("JSON Editor")
+pygame.mouse.set_cursor(*pygame.cursors.tri_left)
 
 text_input = TextInput(
             x=125, 
