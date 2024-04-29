@@ -33,6 +33,8 @@ text_box = DisplayJSONBox(
             bg_colour=(105, 105, 105)
 )
 
+text_box.set_text("test.json")
+
 keyboard = Keyboard(
             text_input=text_input
 )
@@ -81,13 +83,12 @@ while running:
         text_box.handle_event(event)
         display_keys.handle_event(event)
 
+    display_keys.set_keys()
+
     text_input.draw()
     text_box.draw()
     display_keys.draw()
 
-    text_box.set_text("test.json")
-    display_keys.set_keys()
-    
     pygame.display.update()
     pygame.display.flip()
 
