@@ -3,7 +3,7 @@ import json
 import ast
 import os
 
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Callable
 
 
 def convert_str(s):
@@ -39,7 +39,8 @@ class Button:
                  border_colour: Tuple[int, int, int] = (0, 0, 0),
                  border_width: int = 2,
                  screen_x: int = 0,
-                 screen_y: int = 0
+                 screen_y: int = 0,
+                 callback: Callable = None
                  ):
         
         self.x = x
@@ -56,6 +57,8 @@ class Button:
         self.screen = screen
         self.screen_x = screen_x
         self.screen_y = screen_y
+
+        self.callback = callback
 
         self.surface = pygame.Surface((self.width, self.height))
 
@@ -103,6 +106,10 @@ class Button:
         self.text = text
         self.text_surface = self.font.render(self.text, True, self.font_colour)
         self.text_rect = self.text_surface.get_rect(center=(self.surface.get_width()/2, self.surface.get_height()/2))
+    
+    def callback(self):
+        if self.callback:
+            self.callback()
 
 class TextInput:
     def __init__(self,
@@ -407,37 +414,83 @@ class DisplayJSONKeyButtonsDynamically:
         self.scroll_speed = 10
 
         self.total_button_height = 0
+        self.root_dict = display_json_box.dict
+        self.current_dict = self.root_dict
+        self.keys = list(self.current_dict.keys())
+
+        self.at_root = True
+
+        self.parent_dicts = [self.current_dict]
+
+        self.back_button = Button(
+                                x=665,
+                                y=360,
+                                width=100,
+                                height=30,
+                                font=self.font,
+                                screen=self.screen,
+                                text="Back",
+                                bg_colour=(178,34,34),
+                                hover_colour=(139,0,0)
+                                )
 
     def set_keys(self, force_reload: bool = False):
-        keys = list(self.display_json_box.dict.keys())
-        if force_reload or not self.keys:
-            self.keys = keys
+        if force_reload:
+            self.keys = list(self.current_dict.keys())
         self.total_keys = len(self.keys)
         self.total_button_height = ((self.total_keys + 4) // 5) * self.button_height
         total_lines = (self.total_keys + 4) // 5
         visible_lines = self.height // self.button_height
-        self.scroll_bar_height = max((visible_lines / total_lines) * self.height, 20)
+        if total_lines == 0:
+            self.scroll_bar_height = 0
+        else:
+            self.scroll_bar_height = max((visible_lines / total_lines) * self.height, 20)
         self.load_visible_buttons()
-        
+
+    def update_keys_and_buttons(self, key):
+        if isinstance(self.current_dict[key], dict):
+            self.parent_dicts.append(self.current_dict)
+            self.current_dict = self.current_dict[key]
+            self.set_keys(force_reload=True)
+            self.at_root = False
+        else:
+            self.at_root = False
+            self.keys = []
+            self.buttons = []
+        self.total_keys = len(self.keys)
+        self.total_button_height = ((self.total_keys + 4) // 5) * self.button_height
+
+        if self.keys:
+            self.load_visible_buttons()
+            self.draw()
+        return bool(self.keys)
+
     def load_visible_buttons(self):
-        start_row = max(int(self.scroll_offset_y / self.button_height), 0)
-        end_row = min(start_row + int(self.height / self.button_height) + 2, int(self.total_keys / 5) + 1)
-        start_key = start_row * 5
-        end_key = min(end_row * 5, self.total_keys)
-        self.visible_keys = self.keys[start_key:end_key]
-        self.buttons = [Button(
-            x=(i % 5) * self.button_width,
-            y=((i // 5) - start_row) * self.button_height,
-            width=self.button_width,
-            height=self.button_height,
-            font=self.font,
-            screen=self.surface,
-            text=key,
-            bg_colour=(169, 169, 169),
-            border_width=2,
-            screen_x=(i % 5) * self.button_width + self.x,
-            screen_y=((i // 5) - start_row) * self.button_height + self.y
-        ) for i, key in enumerate(self.visible_keys, start=start_key)]
+        if not self.keys:
+            self.visible_keys = []
+            self.buttons = []
+            return
+        elif self.keys:
+            start_row = max(int(self.scroll_offset_y / self.button_height), 0)
+            end_row = min(start_row + int(self.height / self.button_height) + 2, int(self.total_keys / 5) + 1)
+            start_key = start_row * 5
+            end_key = min(end_row * 5, self.total_keys)
+            self.visible_keys = self.keys[start_key:end_key]
+
+            self.buttons = [Button(
+                x=(i % 5) * self.button_width,
+                y=((i // 5) - start_row) * self.button_height,
+                width=self.button_width,
+                height=self.button_height,
+                font=self.font,
+                screen=self.surface,
+                text=key,
+                bg_colour=(169, 169, 169),
+                border_width=2,
+                screen_x=(i % 5) * self.button_width + self.x,
+                screen_y=((i // 5) - start_row) * self.button_height + self.y,
+                callback=lambda key=key: self.update_keys_and_buttons(key)
+            ) for i, key in enumerate(self.visible_keys, start=start_key)]
 
 
     def draw(self):
@@ -447,6 +500,13 @@ class DisplayJSONKeyButtonsDynamically:
         visible_lines = self.height // self.button_height
 
         self.load_visible_buttons()
+
+        if not self.at_root:
+            self.back_button.draw()
+
+        if not self.keys:
+            self.buttons = []
+            return
 
         for button in self.buttons:
             button.draw()
@@ -471,6 +531,12 @@ class DisplayJSONKeyButtonsDynamically:
                 if self.width - self.scroll_bar_width <= mouse_x <= self.width and 0 <= mouse_y <= self.height:
                     self.vertical_scroll_bar_dragging = True
                     self.scroll_bar_drag_start_y = mouse_y - self.scroll_bar_y
+                if self.back_button.rect.collidepoint(pygame.mouse.get_pos()):
+                    pass
+                for button in self.buttons:
+                    if button.rect.collidepoint(mouse_x + self.x, mouse_y + self.y):
+                        button.callback()
+                        break   
             elif event.button == 4:
                 if self.rect.collidepoint(pygame.mouse.get_pos()):
                     if self.vertical_scroll_bar_enabled:
@@ -479,7 +545,8 @@ class DisplayJSONKeyButtonsDynamically:
                 if self.rect.collidepoint(pygame.mouse.get_pos()):
                     if self.vertical_scroll_bar_enabled:
                         self.scroll_down()
-            self.draw()
+            if self.keys:
+                self.draw()
         elif event.type == pygame.MOUSEBUTTONUP:
             if event.button == 1:
                 self.vertical_scroll_bar_dragging = False
@@ -490,7 +557,8 @@ class DisplayJSONKeyButtonsDynamically:
                 self.scroll_bar_y = min(max(mouse_y - self.scroll_bar_drag_start_y, 0), self.height - self.scroll_bar_height)
                 self.scroll_offset_y = (self.scroll_bar_y / (self.height - self.scroll_bar_height)) * max(self.total_button_height - self.height, 0)
                 self.scroll_offset_y = min(self.scroll_offset_y, max(self.total_button_height - self.height, 0))
-            self.draw()
+            if self.keys:
+                self.draw()
 
     def scroll_down(self):
         max_scroll = max(self.total_button_height - self.height, 0)
