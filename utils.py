@@ -17,11 +17,6 @@ def convert_str(s):
                 return ast.literal_eval(s)
             except (ValueError, SyntaxError):
                 return s
-            
-def line_generator(filename: str):
-    with open(filename, 'r') as file:
-        for line in file:
-            yield line.rstrip('\n')
 
 
 class Button:
