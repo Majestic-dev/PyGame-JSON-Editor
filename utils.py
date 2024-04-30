@@ -414,13 +414,12 @@ class DisplayJSONKeyButtonsDynamically:
         self.scroll_speed = 10
 
         self.total_button_height = 0
-        self.root_dict = display_json_box.dict
-        self.current_dict = self.root_dict
+        self.current_dict = display_json_box.dict
         self.keys = list(self.current_dict.keys())
 
         self.at_root = True
 
-        self.parent_dicts = [self.current_dict]
+        self.navigation_stack = []
 
         self.back_button = Button(
                                 x=665,
@@ -449,12 +448,14 @@ class DisplayJSONKeyButtonsDynamically:
 
     def update_keys_and_buttons(self, key):
         if isinstance(self.current_dict[key], dict):
-            self.parent_dicts.append(self.current_dict)
+            self.navigation_stack.append((self.current_dict, self.keys))
             self.current_dict = self.current_dict[key]
             self.set_keys(force_reload=True)
             self.at_root = False
         else:
             self.at_root = False
+            self.navigation_stack.append((self.current_dict, self.keys))
+            self.current_dict = {key: self.current_dict[key]}
             self.keys = []
             self.buttons = []
         self.total_keys = len(self.keys)
@@ -464,6 +465,12 @@ class DisplayJSONKeyButtonsDynamically:
             self.load_visible_buttons()
             self.draw()
         return bool(self.keys)
+    
+    def go_back(self):
+        if self.navigation_stack:
+            self.current_dict, self.keys = self.navigation_stack.pop()
+            self.set_keys(force_reload=True)
+            self.at_root = len(self.navigation_stack) == 0
 
     def load_visible_buttons(self):
         if not self.keys:
@@ -532,7 +539,7 @@ class DisplayJSONKeyButtonsDynamically:
                     self.vertical_scroll_bar_dragging = True
                     self.scroll_bar_drag_start_y = mouse_y - self.scroll_bar_y
                 if self.back_button.rect.collidepoint(pygame.mouse.get_pos()):
-                    pass
+                    self.go_back()
                 for button in self.buttons:
                     if button.rect.collidepoint(mouse_x + self.x, mouse_y + self.y):
                         button.callback()
