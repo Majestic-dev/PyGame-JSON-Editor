@@ -35,7 +35,8 @@ class Button:
                  border_width: int = 2,
                  screen_x: int = 0,
                  screen_y: int = 0,
-                 callback: Callable = None
+                 callback: Callable = None,
+                 sprite: Optional[str] = None
                  ):
         
         self.x = x
@@ -55,6 +56,8 @@ class Button:
 
         self.callback = callback
 
+        self.sprite = pygame.image.load(sprite) if sprite else None
+
         self.surface = pygame.Surface((self.width, self.height))
 
         if self.screen_x == 0 and self.screen_y == 0:
@@ -67,12 +70,16 @@ class Button:
         self.is_dragging = False
 
     def draw(self):
-        self.surface.fill(self.bg_colour)
+        if self.sprite:
+            self.surface.blit(pygame.transform.scale(self.sprite, (self.width, self.height)), (0, 0))
+        else:
+            self.surface.fill(self.bg_colour)
 
         if self.rect.collidepoint(pygame.mouse.get_pos()):
             self.surface.fill(self.hover_colour)
         else:
-            self.surface.fill(self.bg_colour)
+            if not self.sprite:
+                self.surface.fill(self.bg_colour)
         
         pygame.draw.rect(self.surface, self.border_colour, (0, 0, self.width, self.height), self.border_width)
         self.surface.blit(self.text_surface, self.text_rect)
