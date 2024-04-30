@@ -32,7 +32,6 @@ text_box = DisplayJSONBox(
             screen=screen,
             bg_colour=(105, 105, 105)
 )
-
 text_box.set_text("test.json")
 
 keyboard = Keyboard(
@@ -85,6 +84,7 @@ while running:
 
     display_keys.set_keys()
 
+    text_box.set_text("test.json")
     text_input.draw()
     text_box.draw()
     display_keys.draw()
