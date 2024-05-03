@@ -77,14 +77,22 @@ class Button:
         button_surface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
         button_surface.fill((0, 0, 0, 0))
 
+        mask_surface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+        pygame.draw.rect(mask_surface, (255, 255, 255), (0, 0, self.width, self.height), border_radius=self.border_radius)
+
         if self.sprite:
             if self.rect.collidepoint(pygame.mouse.get_pos()):
                 if self.dark_sprite:
-                    button_surface.blit(pygame.transform.scale(self.dark_sprite, (self.width, self.height)), (0, 0))
+                    temp_surface = pygame.transform.scale(self.dark_sprite, (self.width, self.height))
                 else:
-                    pygame.draw.rect(button_surface, self.hover_colour, (0, 0, self.width, self.height), border_radius=self.border_radius)
+                    temp_surface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+                    pygame.draw.rect(temp_surface, self.hover_colour, (0, 0, self.width, self.height), border_radius=self.border_radius)
             else:
-                button_surface.blit(pygame.transform.scale(self.sprite, (self.width, self.height)), (0, 0))
+                temp_surface = pygame.transform.scale(self.sprite, (self.width, self.height))
+
+            button_surface.blit(temp_surface, (0, 0))
+            button_surface.blit(mask_surface, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+
         else:
             if self.rect.collidepoint(pygame.mouse.get_pos()):
                 pygame.draw.rect(button_surface, self.hover_colour, (0, 0, self.width, self.height), border_radius=self.border_radius)
@@ -464,6 +472,10 @@ class DisplayJSONKeyButtonsDynamically:
                                 hover_colour=(139,0,0),
                                 border_radius=5
                                 )
+        
+        self.sprite = pygame.image.load("photo.png")
+        self.dark_sprite = self.sprite.copy()
+        self.dark_sprite.fill((128, 128, 128), special_flags=pygame.BLEND_RGBA_MULT)
 
 
     def set_keys(self, force_reload: bool = False):
@@ -530,7 +542,9 @@ class DisplayJSONKeyButtonsDynamically:
                 border_radius=5,
                 screen_x=(i % 5) * self.button_width + self.x,
                 screen_y=((i // 5) - start_row) * self.button_height + self.y,
-                callback=lambda key=key: self.update_keys_and_buttons(key)
+                callback=lambda key=key: self.update_keys_and_buttons(key),
+                sprite=self.sprite,
+                dark_sprite=self.dark_sprite
             ) for i, key in enumerate(self.visible_keys, start=start_key)]
 
     def draw(self):
