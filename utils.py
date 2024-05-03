@@ -33,10 +33,12 @@ class Button:
                  hover_colour: Tuple[int, int, int] = (128, 128, 128),
                  border_colour: Tuple[int, int, int] = (0, 0, 0),
                  border_width: int = 2,
+                 border_radius: int = 0,
                  screen_x: int = 0,
                  screen_y: int = 0,
                  callback: Callable = None,
-                 sprite: Optional[str] = None
+                 sprite: Optional[pygame.image.load] = None,
+                 dark_sprite: Optional[pygame.image.load] = None
                  ):
         
         self.x = x
@@ -50,13 +52,15 @@ class Button:
         self.hover_colour = hover_colour
         self.border_colour = border_colour
         self.border_width = border_width
+        self.border_radius = border_radius
         self.screen = screen
         self.screen_x = screen_x
         self.screen_y = screen_y
 
         self.callback = callback
 
-        self.sprite = pygame.image.load(sprite) if sprite else None
+        self.sprite = sprite if sprite else None
+        self.dark_sprite = dark_sprite if dark_sprite else None
 
         self.surface = pygame.Surface((self.width, self.height))
 
@@ -64,26 +68,45 @@ class Button:
             self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
         else:
             self.rect = pygame.Rect(self.screen_x, self.screen_y, self.width, self.height)
-        self.text_surface = self.font.render(self.text, True, self.font_colour)
-        self.text_rect = self.text_surface.get_rect(center=(self.surface.get_width()/2, self.surface.get_height()/2))
+
+        self.set_text(self.text)
 
         self.is_dragging = False
 
     def draw(self):
-        if self.sprite:
-            self.surface.blit(pygame.transform.scale(self.sprite, (self.width, self.height)), (0, 0))
-        else:
-            self.surface.fill(self.bg_colour)
+        button_surface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+        button_surface.fill((0, 0, 0, 0))
 
-        if self.rect.collidepoint(pygame.mouse.get_pos()):
-            self.surface.fill(self.hover_colour)
+        if self.sprite:
+            if self.rect.collidepoint(pygame.mouse.get_pos()):
+                if self.dark_sprite:
+                    button_surface.blit(pygame.transform.scale(self.dark_sprite, (self.width, self.height)), (0, 0))
+                else:
+                    pygame.draw.rect(button_surface, self.hover_colour, (0, 0, self.width, self.height), border_radius=self.border_radius)
+            else:
+                button_surface.blit(pygame.transform.scale(self.sprite, (self.width, self.height)), (0, 0))
         else:
-            if not self.sprite:
-                self.surface.fill(self.bg_colour)
-        
-        pygame.draw.rect(self.surface, self.border_colour, (0, 0, self.width, self.height), self.border_width)
-        self.surface.blit(self.text_surface, self.text_rect)
-        self.screen.blit(self.surface, (self.x, self.y))
+            if self.rect.collidepoint(pygame.mouse.get_pos()):
+                pygame.draw.rect(button_surface, self.hover_colour, (0, 0, self.width, self.height), border_radius=self.border_radius)
+            else:
+                pygame.draw.rect(button_surface, self.bg_colour, (0, 0, self.width, self.height), border_radius=self.border_radius)
+
+        pygame.draw.rect(button_surface, self.border_colour, (0, 0, self.width, self.height), self.border_width, self.border_radius)
+        button_surface.blit(self.text_surface, self.text_rect)
+        self.screen.blit(button_surface, (self.x, self.y))
+
+    def set_text(self, text: str):
+        self.text = text
+
+        self.text_surface = self.font.render(self.text, True, self.font_colour)
+        text_width = self.text_surface.get_width()
+
+        while text_width > self.width - 10:
+            self.text = self.text[:-4] + '...'
+            self.text_surface = self.font.render(self.text, True, self.font_colour)
+            text_width = self.text_surface.get_width()
+
+        self.text_rect = self.text_surface.get_rect(center=(self.width/2, self.height/2))
 
     def move_on_hold(self):
         self.surface.fill(self.hover_colour)
@@ -103,12 +126,7 @@ class Button:
         if self.rect.collidepoint(pygame.mouse.get_pos()):
             return True
         return False
-    
-    def set_text(self, text: str):
-        self.text = text
-        self.text_surface = self.font.render(self.text, True, self.font_colour)
-        self.text_rect = self.text_surface.get_rect(center=(self.surface.get_width()/2, self.surface.get_height()/2))
-    
+
     def callback(self):
         if self.callback:
             self.callback()
@@ -201,7 +219,8 @@ class TextInput:
 
     def get_text(self):
         return self.text_surface
-    
+
+
 class DisplayJSONBox:
     def __init__(self,
                  x: int,
@@ -285,7 +304,7 @@ class DisplayJSONBox:
 
         for i, text_surface in enumerate(self.text_surfaces):
             y = i * self.font.get_height() + 10
-            self.surface.blit(text_surface, (10 - self.scroll_offset_x, y))
+            self.surface.blit(text_surface, (10, y))
 
         self.screen.blit(self.surface, (self.x, self.y))
 
@@ -309,8 +328,15 @@ class DisplayJSONBox:
         start_line = max(int(self.scroll_offset_y / self.font.get_height()), 0)
         end_line = min(start_line + int(self.height / self.font.get_height()) + 1, self.total_lines)
         self.text = self.lines[start_line:end_line]
-        self.text_surfaces = [self.font.render(line, True, self.font_colour) for line in self.text]
-        self.text_width = max(self.font.size(line)[0] for line in self.text)
+        self.text_surfaces = []
+        for line in self.text:
+            start_char = max(int(self.scroll_offset_x / self.font.size(' ')[0]), 0)
+            end_char = start_char + int(self.width / self.font.size(' ')[0])
+            if end_char > len(line):
+                end_char = len(line)
+            line_surface = self.font.render(line[start_char:end_char], True, self.font_colour)
+            self.text_surfaces.append(line_surface)
+        self.text_width = max(self.font.size(line)[0] for line in self.lines)
 
     def handle_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
@@ -385,6 +411,7 @@ class DisplayJSONKeyButtonsDynamically:
                  screen: pygame.display.set_mode,
                  button_width: int,
                  button_height: int,
+                 button_spacing: int,
                  display_json_box: DisplayJSONBox
                  ):
         
@@ -415,6 +442,8 @@ class DisplayJSONKeyButtonsDynamically:
         self.scroll_offset_y = 0
         self.scroll_speed = 10
 
+        self.button_spacing = button_spacing
+
         self.total_button_height = 0
         self.current_dict = display_json_box.dict
         self.keys = list(self.current_dict.keys())
@@ -432,8 +461,10 @@ class DisplayJSONKeyButtonsDynamically:
                                 screen=self.screen,
                                 text="Back",
                                 bg_colour=(178,34,34),
-                                hover_colour=(139,0,0)
+                                hover_colour=(139,0,0),
+                                border_radius=5
                                 )
+
 
     def set_keys(self, force_reload: bool = False):
         if force_reload:
@@ -487,8 +518,8 @@ class DisplayJSONKeyButtonsDynamically:
             self.visible_keys = self.keys[start_key:end_key]
 
             self.buttons = [Button(
-                x=(i % 5) * self.button_width,
-                y=((i // 5) - start_row) * self.button_height,
+                x=(i % 5) * (self.button_width + self.button_spacing),
+                y=((i // 5) - start_row) * (self.button_height + self.button_spacing),
                 width=self.button_width,
                 height=self.button_height,
                 font=self.font,
@@ -496,11 +527,11 @@ class DisplayJSONKeyButtonsDynamically:
                 text=key,
                 bg_colour=(169, 169, 169),
                 border_width=2,
+                border_radius=5,
                 screen_x=(i % 5) * self.button_width + self.x,
                 screen_y=((i // 5) - start_row) * self.button_height + self.y,
                 callback=lambda key=key: self.update_keys_and_buttons(key)
             ) for i, key in enumerate(self.visible_keys, start=start_key)]
-
 
     def draw(self):
         self.surface.fill((25, 25, 25))
