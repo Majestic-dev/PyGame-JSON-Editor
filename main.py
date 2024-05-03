@@ -45,8 +45,9 @@ display_keys = DisplayJSONKeyButtonsDynamically(
             height=300,
             font=pygame.font.Font(None, 24),
             screen=screen,
-            button_width=750//5,
+            button_width=725//5,
             button_height=50,
+            button_spacing=5,
             display_json_box=text_box,
 )
 
