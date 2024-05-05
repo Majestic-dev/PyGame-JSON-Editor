@@ -48,6 +48,7 @@ display_keys = DisplayJSONKeyButtonsDynamically(
             button_width=725//5,
             button_height=50,
             button_spacing=5,
+            input_box=text_input,
             display_json_box=text_box,
 )
 

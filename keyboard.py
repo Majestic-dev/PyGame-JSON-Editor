@@ -92,7 +92,6 @@ class Keyboard:
             elif user_text != text_input.placeholder:
                 text_input.add_json(
                         filename="test.json",
-                        keys=["key_0"],
                         value=user_text
                     )
                 text_box.set_text("test.json", True)

@@ -168,6 +168,8 @@ class TextInput:
         self.border_width = border_width
         self.screen = screen
 
+        self.path = []
+
         self.surface = pygame.Surface((self.width, self.height))
         self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
         self.text_surface = self.font.render(self.placeholder, True, self.font_colour)
@@ -211,16 +213,17 @@ class TextInput:
                 self.font = pygame.font.Font(None, current_font_size)
                 self.text_surface = self.font.render(text, True, self.font_colour)
                 self.text_rect = self.text_surface.get_rect(center=(self.surface.get_width()/2, self.surface.get_height()/2))
-    
-    def add_json(self, filename: str, keys: list, value):
+
+    def add_json(self, filename: str, value):
         value = convert_str(value)
         with open(filename, 'r') as file:
             data = json.load(file)
 
-        temp = data
-        for key in keys[:-1]:
-            temp = temp[key]
-        temp[keys[-1]] = value
+        if self.path:
+            temp = data
+            for key in self.path[:-1]:
+                temp = temp[key]
+            temp[self.path[-1]] = value
 
         with open(filename, 'w') as file:
             json.dump(data, file, indent=4)
@@ -416,6 +419,7 @@ class DisplayJSONKeyButtonsDynamically:
                  button_width: int,
                  button_height: int,
                  button_spacing: int,
+                 input_box: TextInput,
                  display_json_box: DisplayJSONBox
                  ):
         
@@ -427,6 +431,7 @@ class DisplayJSONKeyButtonsDynamically:
         self.screen = screen
         self.button_width = button_width
         self.button_height = button_height
+        self.input_box = input_box
         self.display_json_box = display_json_box
 
         self.surface = pygame.Surface((self.width, self.height))
@@ -496,11 +501,13 @@ class DisplayJSONKeyButtonsDynamically:
     def update_keys_and_buttons(self, key):
         if isinstance(self.current_dict[key], dict):
             self.navigation_stack.append((self.current_dict, self.keys))
+            self.input_box.path.append(str(key))
             self.current_dict = self.current_dict[key]
             self.set_keys(force_reload=True)
             self.at_root = False
         else:
             self.at_root = False
+            self.input_box.path.append(str(key))
             self.navigation_stack.append((self.current_dict, self.keys))
             self.current_dict = {key: self.current_dict[key]}
             self.keys = []
@@ -516,6 +523,7 @@ class DisplayJSONKeyButtonsDynamically:
     def go_back(self):
         if self.navigation_stack:
             self.current_dict, self.keys = self.navigation_stack.pop()
+            self.input_box.path.pop()
             self.set_keys(force_reload=True)
             self.at_root = len(self.navigation_stack) == 0
 
