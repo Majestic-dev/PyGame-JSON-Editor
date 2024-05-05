@@ -264,7 +264,7 @@ class DisplayJSONBox:
 
         self.scroll_bar_width = 10
         self.scroll_bar_height = 0
-        self.scroll_bar_colour = (128, 128, 128)
+        self.scroll_bar_colour = (150, 150, 150)
 
         self.vertical_scroll_bar_dragging = False
         self.vertical_scroll_bar_enabled = False
@@ -312,7 +312,7 @@ class DisplayJSONBox:
 
         for i, text_surface in enumerate(self.text_surfaces):
             y = i * self.font.get_height() + 10
-            self.surface.blit(text_surface, (10, y))
+            self.surface.blit(text_surface, (10 - self.scroll_offset_x, y))
 
         self.screen.blit(self.surface, (self.x, self.y))
 
@@ -330,21 +330,16 @@ class DisplayJSONBox:
         self.scroll_bar_height = max(self.height * self.height / max(self.text_height, self.height), 20)
         self.file_size = os.path.getsize(filename)
         pygame.display.set_caption(f"JSON Editor ({filename} - {self.file_size / (1024 * 1024):.2f} MB)")
-        self.load_visible_text()
 
     def load_visible_text(self):
         start_line = max(int(self.scroll_offset_y / self.font.get_height()), 0)
         end_line = min(start_line + int(self.height / self.font.get_height()) + 1, self.total_lines)
+
         self.text = self.lines[start_line:end_line]
-        self.text_surfaces = []
-        for line in self.text:
-            start_char = max(int(self.scroll_offset_x / self.font.size(' ')[0]), 0)
-            end_char = start_char + int(self.width / self.font.size(' ')[0])
-            if end_char > len(line):
-                end_char = len(line)
-            line_surface = self.font.render(line[start_char:end_char], True, self.font_colour)
-            self.text_surfaces.append(line_surface)
-        self.text_width = max(self.font.size(line)[0] for line in self.lines)
+        self.text_surfaces = [self.font.render(line, True, self.font_colour) for line in self.text]
+
+        if self.text_width == 0:
+            self.text_width = max(self.font.size(line)[0] for line in self.lines) + 10
 
     def handle_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
@@ -376,6 +371,7 @@ class DisplayJSONBox:
                         if self.vertical_scroll_bar_enabled:
                             self.scroll_down()
             self.draw()
+
         elif event.type == pygame.MOUSEBUTTONUP:
             if event.button == 1:
                 self.vertical_scroll_bar_dragging = False
@@ -621,13 +617,13 @@ class DisplayJSONKeyButtonsDynamically:
                 self.draw()
 
     def scroll_down(self):
-        max_scroll = max(self.total_button_height - self.height, 0)
+        max_scroll = max(self.total_button_height - self.height + self.button_height, 0)
         self.scroll_bar_y = min(self.scroll_bar_y + self.scroll_speed, self.height - self.scroll_bar_height)
         self.scroll_offset_y = (self.scroll_bar_y / (self.height - self.scroll_bar_height)) * max_scroll
         self.scroll_offset_y = min(self.scroll_offset_y, max_scroll)
 
     def scroll_up(self):
-        max_scroll = max(self.total_button_height - self.height, 0)
+        max_scroll = max(self.total_button_height - self.height + self.button_height, 0)
         self.scroll_bar_y = max(self.scroll_bar_y - self.scroll_speed, 0)
         self.scroll_offset_y = (self.scroll_bar_y / (self.height - self.scroll_bar_height)) * max_scroll
         self.scroll_offset_y = max(self.scroll_offset_y, 0)
