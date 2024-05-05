@@ -65,7 +65,7 @@ def button_callback():
 
 while running:
     screen.fill((25, 25, 25))
-    clock.tick(60)
+    clock.tick(100)
 
     keys = pygame.key.get_pressed()
     user_text = keyboard.handle_backspace(keys, user_text)
@@ -85,7 +85,7 @@ while running:
 
     display_keys.set_keys()
 
-    text_box.set_text("test.json")
+    text_box.load_visible_text()
     text_input.draw()
     text_box.draw()
     display_keys.draw()
