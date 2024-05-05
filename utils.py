@@ -456,12 +456,12 @@ class DisplayJSONKeyButtonsDynamically:
 
         self.navigation_stack = []
 
-        self.back_button_sprite = pygame.image.load("back_button.png")
+        self.back_button_sprite = pygame.image.load("assets/back_button.jpg")
         self.back_button_dark_sprite = self.back_button_sprite.copy()
         self.back_button_dark_sprite.fill((128, 128, 128), special_flags=pygame.BLEND_RGBA_MULT)
 
         self.back_button = Button(
-                                x=665,
+                                x=660,
                                 y=360,
                                 width=100,
                                 height=30,
@@ -475,7 +475,7 @@ class DisplayJSONKeyButtonsDynamically:
                                 dark_sprite=self.back_button_dark_sprite,
                                 )
         
-        self.sprite = pygame.image.load("normal_button.png")
+        self.sprite = pygame.image.load("assets/normal_button.jpg")
         self.dark_sprite = self.sprite.copy()
         self.dark_sprite.fill((128, 128, 128), special_flags=pygame.BLEND_RGBA_MULT)
 
