@@ -34,9 +34,6 @@ text_box = DisplayJSONBox(
 )
 text_box.set_text("test.json")
 
-keyboard = Keyboard(
-            text_input=text_input
-)
 
 display_keys = DisplayJSONKeyButtonsDynamically(
             x=15,
@@ -50,6 +47,11 @@ display_keys = DisplayJSONKeyButtonsDynamically(
             button_spacing=5,
             input_box=text_input,
             display_json_box=text_box,
+)
+
+keyboard = Keyboard(
+            text_input=text_input,
+            display_keys=display_keys
 )
 
 user_text = text_input.placeholder

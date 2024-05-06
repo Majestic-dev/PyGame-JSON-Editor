@@ -1,11 +1,12 @@
 import pygame
 
-from utils import TextInput
+from utils import TextInput, DisplayJSONKeyButtonsDynamically
 
 class Keyboard:
     def __init__(
             self,
             text_input: TextInput = None,
+            display_keys: DisplayJSONKeyButtonsDynamically = None
     ):
         # Backspace variables
 
@@ -18,6 +19,10 @@ class Keyboard:
 
         # Mouse variables
         self.input_box_active = False
+
+        # Input variables
+
+        self.display_keys = display_keys
 
 
     def handle_backspace(self, keys, user_text: str):
@@ -94,6 +99,7 @@ class Keyboard:
                         filename="test.json",
                         value=user_text
                     )
+                self.display_keys.set_keys(force_reload=True)
                 text_box.set_text("test.json", True)
                 text_input_callback(user_text)
                 user_text = text_input.placeholder
