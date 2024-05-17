@@ -1,6 +1,6 @@
 import pygame
 
-from utils import TextInput, DisplayJSONBox, DisplayJSONKeyButtonsDynamically
+from utils import *
 
 from keyboard import Keyboard
 
@@ -13,7 +13,7 @@ pygame.display.set_caption("JSON Editor")
 pygame.mouse.set_cursor(*pygame.cursors.tri_left)
 
 text_input = TextInput(
-            x=125, 
+            x=350, 
             y=125, 
             width=150, 
             height=50, 
@@ -47,6 +47,15 @@ display_keys = DisplayJSONKeyButtonsDynamically(
             button_spacing=5,
             input_box=text_input,
             display_json_box=text_box,
+)
+
+minimap = TreeMinimap(
+            x=-2,
+            y=-2,
+            width=250,
+            height=200,
+            screen=screen,
+            input_box=text_input,
 )
 
 keyboard = Keyboard(
@@ -92,6 +101,7 @@ while running:
     text_input.draw()
     text_box.draw()
     display_keys.draw()
+    minimap.draw()
 
     pygame.display.update()
     pygame.display.flip()
