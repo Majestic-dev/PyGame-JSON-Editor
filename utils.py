@@ -1,5 +1,7 @@
 import pygame
 import json
+import string
+import random
 import ast
 import os
 
@@ -455,7 +457,9 @@ class DisplayJSONKeyButtonsDynamically:
 
         self.total_button_height = 0
         self.current_dict = display_json_box.dict
+        self.json_data = self.current_dict = display_json_box.dict
         self.keys = list(self.current_dict.keys())
+        self.current_key = None
 
         self.at_root = True
 
@@ -500,16 +504,18 @@ class DisplayJSONKeyButtonsDynamically:
 
     def update_keys_and_buttons(self, key):
         if isinstance(self.current_dict[key], dict):
-            self.navigation_stack.append((self.current_dict, self.keys))
+            self.current_key = key
+            self.navigation_stack.append((self.current_dict, self.keys, self.current_key))
             self.input_box.path.append(str(key))
             self.current_dict = self.current_dict[key]
             self.set_keys(force_reload=True)
             self.at_root = False
         else:
             self.at_root = False
+            self.current_key = key
             self.input_box.path.append(str(key))
-            self.navigation_stack.append((self.current_dict, self.keys))
-            self.current_dict = {key: self.current_dict[key]}
+            self.navigation_stack.append((self.current_dict, self.keys, self.current_key))
+            self.current_dict = {}
             self.keys = []
             self.buttons = []
         self.total_keys = len(self.keys)
@@ -520,25 +526,79 @@ class DisplayJSONKeyButtonsDynamically:
             self.draw()
         return bool(self.keys)
     
+    def print_tree(self, json_obj, indent=0):
+        if isinstance(json_obj, dict):
+            for key in json_obj:
+                print('  ' * indent + str(key))
+                self.print_tree(json_obj[key], indent + 1)
+        elif isinstance(json_obj, list):
+            for i in range(len(json_obj)):
+                print('  ' * indent + str(i))
+                self.print_tree(json_obj[i], indent + 1)
+        else:
+            print('  ' * indent + str(json_obj))
+    
     def go_back(self):
         if self.navigation_stack:
-            self.current_dict, self.keys = self.navigation_stack.pop()
+            self.current_dict, self.keys, self.current_key = self.navigation_stack.pop()
             self.input_box.path.pop()
             self.set_keys(force_reload=True)
             self.at_root = len(self.navigation_stack) == 0
+
+    def delete_key(self, filename: str):
+        if self.navigation_stack:
+            parent_dict, _, current_key = self.navigation_stack[-1]
+            if current_key in parent_dict:
+                del parent_dict[current_key]
+                with open(filename, 'w') as file:
+                    json.dump(self.json_data, file, indent=4)
+                self.display_json_box.set_text(filename, force_reload=True)
+                self.set_keys(force_reload=True) 
+                self.go_back()
 
     def load_visible_buttons(self):
         if not self.keys:
             self.visible_keys = []
             self.buttons = []
+
+            start_row = max(int(self.scroll_offset_y / self.button_height), 0)
+
+            last_button_index = 0
+            last_button_x = (last_button_index % 5) * (self.button_width + self.button_spacing)
+            last_button_y = ((last_button_index // 5) - start_row) * (self.button_height + self.button_spacing)
+            last_button_screen_x = (last_button_index % 5) * self.button_width + self.x
+            last_button_screen_y = ((last_button_index // 5) - start_row) * self.button_height + self.y
+
+            self.last_button = Button(
+                x=last_button_x,
+                y=last_button_y,
+                width=self.button_width,
+                height=self.button_height,
+                font=self.font,
+                screen=self.surface,
+                text='-',
+                bg_colour=(178, 34, 34),
+                hover_colour=(139, 0, 0),
+                border_width=2,
+                border_radius=5,
+                screen_x=last_button_screen_x,
+                screen_y=last_button_screen_y,
+                callback=lambda: self.delete_key("test.json"),
+                sprite=self.back_button_sprite,
+                dark_sprite=self.back_button_dark_sprite
+            )
+
+            self.buttons.append(self.last_button)
+
             return
+        
         elif self.keys:
             start_row = max(int(self.scroll_offset_y / self.button_height), 0)
             end_row = min(start_row + int(self.height / self.button_height) + 2, int(self.total_keys / 5) + 1)
             start_key = start_row * 5
             end_key = min(end_row * 5, self.total_keys)
             self.visible_keys = self.keys[start_key:end_key]
-
+            
             self.buttons = [Button(
                 x=(i % 5) * (self.button_width + self.button_spacing),
                 y=((i // 5) - start_row) * (self.button_height + self.button_spacing),
@@ -557,6 +617,33 @@ class DisplayJSONKeyButtonsDynamically:
                 dark_sprite=self.dark_sprite
             ) for i, key in enumerate(self.visible_keys, start=start_key)]
 
+            last_button_index = len(self.visible_keys)
+            last_button_x = (last_button_index % 5) * (self.button_width + self.button_spacing)
+            last_button_y = ((last_button_index // 5) - start_row) * (self.button_height + self.button_spacing)
+            last_button_screen_x = (last_button_index % 5) * self.button_width + self.x
+            last_button_screen_y = ((last_button_index // 5) - start_row) * self.button_height + self.y
+            
+            self.last_button = Button(
+                x=last_button_x,
+                y=last_button_y,
+                width=self.button_width,
+                height=self.button_height,
+                font=self.font,
+                screen=self.surface,
+                text='-',
+                bg_colour=(178, 34, 34),
+                hover_colour=(139, 0, 0),
+                border_width=2,
+                border_radius=5,
+                screen_x=last_button_screen_x,
+                screen_y=last_button_screen_y,
+                callback=lambda: self.delete_key("test.json"),
+                sprite=self.back_button_sprite,
+                dark_sprite=self.back_button_dark_sprite
+            )
+
+            self.buttons.append(self.last_button)
+
     def draw(self):
         self.surface.fill((25, 25, 25))
 
@@ -570,9 +657,11 @@ class DisplayJSONKeyButtonsDynamically:
 
         if not self.keys:
             self.buttons = []
-            return
+            self.load_visible_buttons()
 
         for button in self.buttons:
+            if self.at_root and button == self.last_button:
+                continue
             button.draw()
 
         if total_lines > visible_lines:
@@ -635,3 +724,96 @@ class DisplayJSONKeyButtonsDynamically:
         self.scroll_bar_y = max(self.scroll_bar_y - self.scroll_speed, 0)
         self.scroll_offset_y = (self.scroll_bar_y / (self.height - self.scroll_bar_height)) * max_scroll
         self.scroll_offset_y = max(self.scroll_offset_y, 0)
+
+
+class TreeMinimap:
+    def __init__(self,
+                 x: int,
+                 y: int,
+                 width: int,
+                 height: int,
+                 screen: pygame.display.set_mode,
+                 input_box: TextInput,
+    ):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.input_box = input_box
+
+        self.screen = screen
+
+        self.surface = pygame.Surface((self.width, self.height))
+        self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
+
+        self.items = []
+
+        self.sprite = pygame.image.load("assets/tree_box.jpg")
+        self.dark_sprite = self.sprite.copy()
+        self.dark_sprite.fill((128, 128, 128), special_flags=pygame.BLEND_RGBA_MULT)
+
+        self.scroll_bar_width = 10
+        self.scroll_bar_height = 0
+        self.scroll_bar_colour = (150, 150, 150)
+
+        self.vertical_scroll_bar_dragging = False
+        self.vertical_scroll_bar_enabled = False
+
+        self.horizontal_scroll_bar_dragging = False
+        self.horizontal_scroll_bar_enabled = False
+
+        self.text_width = 0
+
+        self.text_surfaces = []
+
+
+    def unique_id(self):
+        letters_and_digits = string.ascii_letters + string.digits
+        return ''.join(random.choice(letters_and_digits) for _ in range(4))
+
+    def set_text(self):
+        x = 0
+        y = 0
+        path = []
+        for key in self.input_box.path:
+            path.append(key)
+            path_str = '.'.join(path)
+            if path_str not in self.items:
+                self.items.append(path_str)
+            self.surface.blit(self.input_box.font.render(key, True, (192,192,192)), (x + 10, y + 5))
+            y += 20
+            x += 5
+
+        lines = []
+        for item in self.items:
+            lines.append(item)
+
+    def draw(self):
+        for i, text_surface in enumerate(self.text_surfaces):
+            y = i * self.font.get_height() + 10
+            self.surface.blit(text_surface, (10 - self.scroll_offset_x, y))
+
+        self.screen.blit(self.surface, (self.x, self.y))
+
+        if self.sprite:
+            if self.dark_sprite:
+                temp_surface = pygame.transform.scale(self.dark_sprite, (self.width, self.height))
+            else:
+                temp_surface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+                pygame.draw.rect(temp_surface, (128, 128, 128), (0, 0, self.width, self.height), border_radius=5)
+        else:
+            temp_surface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+            pygame.draw.rect(temp_surface, (128, 128, 128), (0, 0, self.width, self.height), border_radius=5)
+
+        self.surface.blit(temp_surface, (0, 0))
+        self.set_text()
+
+    def load_visible_text(self):
+        start_line = max(int(self.scroll_offset_y / self.font.get_height()), 0)
+        end_line = min(start_line + int(self.height / self.font.get_height()) + 1, self.total_lines)
+
+        self.text = self.lines[start_line:end_line]
+        self.text_surfaces = [self.font.render(line, True, self.font_colour) for line in self.text]
+
+        if self.text_width == 0:
+            self.text_width = max(self.font.size(line)[0] for line in self.lines) + 10
